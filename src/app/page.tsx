@@ -38,21 +38,18 @@ const SIZE_OPTIONS = [
 
 type SizeValue = (typeof SIZE_OPTIONS)[number]["value"];
 
-function normalizeUrl(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed) return "";
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  return `https://${trimmed}`;
-}
+const PROTOCOL_RE = /^([a-zA-Z][a-zA-Z0-9+\-.]*:\/\/)(.*)/;
 
-function validateUrl(value: string): string | undefined {
-  const normalized = normalizeUrl(value);
-  if (!normalized) return "URL is required.";
-  const result = z.string().url("Please enter a valid URL.").safeParse(normalized);
+function validateUrl(protocol: string, path: string): string | undefined {
+  const trimmed = path.trim();
+  if (!trimmed) return "URL is required.";
+  const result = z.string().url("Please enter a valid URL.").safeParse(`${protocol}${trimmed}`);
   return result.success ? undefined : result.error.issues[0]?.message;
 }
 
 export default function Home() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const [protocol, setProtocol] = useState("https://");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [qrResult, setQrResult] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -70,7 +67,7 @@ export default function Home() {
 
       try {
         const formData = new FormData();
-        formData.append("url", normalizeUrl(value.url));
+        formData.append("url", `${protocol}${value.url.trim()}`);
         formData.append("size", value.size);
         if (value.logo) {
           formData.append("logo", value.logo);
@@ -134,8 +131,8 @@ export default function Home() {
               <form.Field
                 name="url"
                 validators={{
-                  onBlur: ({ value }) => validateUrl(value),
-                  onSubmit: ({ value }) => validateUrl(value),
+                  onBlur: ({ value }) => validateUrl(protocol, value),
+                  onSubmit: ({ value }) => validateUrl(protocol, value),
                 }}
               >
                 {(field) => (
@@ -143,14 +140,23 @@ export default function Home() {
                     <FieldLabel htmlFor="url">URL</FieldLabel>
                     <InputGroup>
                       <InputGroupAddon>
-                        <InputGroupText>https://</InputGroupText>
+                        <InputGroupText>{protocol}</InputGroupText>
                       </InputGroupAddon>
                       <InputGroupInput
                         id="url"
                         type="text"
                         placeholder="example.com"
                         value={field.state.value}
-                        onChange={(e) => field.handleChange(e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          const match = v.match(PROTOCOL_RE);
+                          if (match) {
+                            setProtocol(match[1]);
+                            field.handleChange(match[2]);
+                          } else {
+                            field.handleChange(v);
+                          }
+                        }}
                         onBlur={field.handleBlur}
                         aria-invalid={field.state.meta.errors.length > 0 || undefined}
                       />
