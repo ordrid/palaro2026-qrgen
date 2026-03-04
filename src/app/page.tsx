@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useTheme } from "next-themes";
+import { Moon, Sun } from "lucide-react";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -102,7 +104,17 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center p-6 gap-6">
+    <main className="min-h-screen bg-background flex flex-col items-center justify-center p-6 gap-6 relative">
+      <Button
+        variant="outline"
+        size="icon"
+        className="absolute top-4 right-4"
+        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        aria-label="Toggle theme"
+      >
+        {resolvedTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      </Button>
+
       <div className="text-center space-y-1">
         <h1 className="text-3xl font-bold tracking-tight">QR Code Generator</h1>
         <p className="text-muted-foreground text-sm">
