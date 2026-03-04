@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const qrSize = 500;
+  const rawSize = Number(formData.get("size")) || 500;
+  const qrSize = Math.min(2000, Math.max(300, rawSize));
   const logoSize = Math.floor(qrSize * 0.25);
 
   const qrBuffer = await QRCode.toBuffer(url.trim(), {
