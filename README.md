@@ -2,16 +2,40 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### NixOS / Nix users
+
+This repo ships a `flake.nix` that provides a dev shell with `bun`, `nodejs_22`, `vips`, and the native libraries `sharp` dlopens at runtime (`libstdc++`, `zlib`, `openssl`, `libuv`, `icu`). This fixes `ERR_DLOPEN_FAILED` errors caused by prebuilt npm binaries not finding FHS library paths on NixOS.
+
+**One-time system setup** (in your NixOS config, for auto-loading):
+
+```nix
+programs.direnv.enable = true;
+programs.direnv.nix-direnv.enable = true;
+```
+
+Then `sudo nixos-rebuild switch`.
+
+**Per-repo setup:**
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+direnv allow        # trusts .envrc, auto-loads the dev shell on cd
+bun install
+bun run dev
+```
+
+Without direnv, use `nix develop` (interactive) or prefix commands with `nix develop -c`:
+
+```bash
+nix develop -c bun install
+nix develop -c bun run build
+```
+
+### Other platforms
+
+```bash
+bun install
+bun run dev
+# or: npm / pnpm / yarn
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
