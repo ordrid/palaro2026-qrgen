@@ -49,8 +49,15 @@ function validateUrl(protocol: string, path: string): string | undefined {
   return result.success ? undefined : result.error.issues[0]?.message;
 }
 
+function validateText(value: string): string | undefined {
+  return value.trim() ? undefined : "Text is required.";
+}
+
+type InputMode = "url" | "text";
+
 export default function Home() {
   const { resolvedTheme, setTheme } = useTheme();
+  const [mode, setMode] = useState<InputMode>("url");
   const [protocol, setProtocol] = useState("https://");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [qrResult, setQrResult] = useState<string | null>(null);
@@ -69,7 +76,9 @@ export default function Home() {
 
       try {
         const formData = new FormData();
-        formData.append("url", `${protocol}${value.url.trim()}`);
+        const encoded =
+          mode === "url" ? `${protocol}${value.url.trim()}` : value.url;
+        formData.append("url", encoded);
         formData.append("size", value.size);
         if (value.logo) {
           formData.append("logo", value.logo);
@@ -128,7 +137,7 @@ export default function Home() {
           <CardHeader>
             <CardTitle>Settings</CardTitle>
             <CardDescription>
-              Enter the URL to encode and optionally upload a custom logo.
+              Encode a URL or any text, then optionally upload a custom logo.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -139,40 +148,86 @@ export default function Home() {
               }}
               className="space-y-4"
             >
-              {/* URL */}
+              {/* Mode toggle */}
+              <div className="inline-flex rounded-md border p-0.5 bg-muted/40">
+                <button
+                  type="button"
+                  onClick={() => setMode("url")}
+                  className={`px-3 py-1 text-xs rounded-sm transition-colors ${
+                    mode === "url"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("text")}
+                  className={`px-3 py-1 text-xs rounded-sm transition-colors ${
+                    mode === "text"
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Text
+                </button>
+              </div>
+
+              {/* URL / Text input */}
               <form.Field
                 name="url"
                 validators={{
-                  onBlur: ({ value }) => validateUrl(protocol, value),
-                  onSubmit: ({ value }) => validateUrl(protocol, value),
+                  onBlur: ({ value }) =>
+                    mode === "url"
+                      ? validateUrl(protocol, value)
+                      : validateText(value),
+                  onSubmit: ({ value }) =>
+                    mode === "url"
+                      ? validateUrl(protocol, value)
+                      : validateText(value),
                 }}
               >
                 {(field) => (
                   <Field>
-                    <FieldLabel htmlFor="url">URL</FieldLabel>
-                    <InputGroup>
-                      <InputGroupAddon>
-                        <InputGroupText>{protocol}</InputGroupText>
-                      </InputGroupAddon>
-                      <InputGroupInput
+                    <FieldLabel htmlFor="url">
+                      {mode === "url" ? "URL" : "Text"}
+                    </FieldLabel>
+                    {mode === "url" ? (
+                      <InputGroup>
+                        <InputGroupAddon>
+                          <InputGroupText>{protocol}</InputGroupText>
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id="url"
+                          type="text"
+                          placeholder="example.com"
+                          value={field.state.value}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            const match = v.match(PROTOCOL_RE);
+                            if (match) {
+                              setProtocol(match[1]);
+                              field.handleChange(match[2]);
+                            } else {
+                              field.handleChange(v);
+                            }
+                          }}
+                          onBlur={field.handleBlur}
+                          aria-invalid={field.state.meta.errors.length > 0 || undefined}
+                        />
+                      </InputGroup>
+                    ) : (
+                      <Input
                         id="url"
                         type="text"
-                        placeholder="example.com"
+                        placeholder="Any text, number, or string"
                         value={field.state.value}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          const match = v.match(PROTOCOL_RE);
-                          if (match) {
-                            setProtocol(match[1]);
-                            field.handleChange(match[2]);
-                          } else {
-                            field.handleChange(v);
-                          }
-                        }}
+                        onChange={(e) => field.handleChange(e.target.value)}
                         onBlur={field.handleBlur}
                         aria-invalid={field.state.meta.errors.length > 0 || undefined}
                       />
-                    </InputGroup>
+                    )}
                     <FieldError>
                       {field.state.meta.errors[0] as string | undefined}
                     </FieldError>
